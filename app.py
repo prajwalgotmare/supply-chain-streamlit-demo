@@ -1,9 +1,9 @@
 import streamlit as st
-import pandas as pd # We'll use it for potential future data display
+import pandas as pd
 import json
-import random # For generating dummy forecast values
+import random
 
-# --- Page Configuration (Optional but good practice) ---
+# --- Page Configuration ---
 st.set_page_config(
     page_title="Supply Chain AI Demo",
     page_icon="🚚",
@@ -12,7 +12,6 @@ st.set_page_config(
 
 # --- Main App Title ---
 st.title("🔗 Supply Chain AI Prototype Demo")
-st.markdown("Choose a feature from the sidebar to explore.")
 
 # --- Sidebar for Navigation ---
 st.sidebar.title("Track Options")
@@ -21,53 +20,64 @@ app_mode = st.sidebar.radio(
     ("Demand Forecasting", "Spoilage Prediction", "ETA Prediction")
 )
 
-# --- Helper function for dummy forecast ---
-def generate_dummy_forecast():
-    return [random.randint(50, 150) for _ in range(7)]
-
 # ==============================================================================
-# --- Option A: Demand Forecasting ---
+# --- Option A: Demand Forecasting (REVISED AND IMPROVED) ---
 # ==============================================================================
 if app_mode == "Demand Forecasting":
     st.header("📈 Demand Forecasting")
     st.markdown("Predict next 7-day SKU-level demand based on past order data.")
+    st.info("This demo uses a pre-trained model's results. Select an SKU and Location to view the forecast.")
 
-    st.subheader("Inputs")
-    # Dummy input - in reality, you'd process this file
-    uploaded_file = st.file_uploader("Upload 60-day order data (CSV)", type="csv")
-    if uploaded_file:
-        st.success(f"File '{uploaded_file.name}' uploaded (dummy processing).")
-        # For dummy, we won't parse. Let's assume some SKUs and locations.
-        sku_id_options = ["mango123", "apple456", "banana789"]
-        location_options = ["Mumbai", "Delhi", "Bangalore"]
+    # --- Load Pre-computed Forecast Data ---
+    try:
+        with open('forecast_output.json', 'r') as f:
+            forecast_data = json.load(f)
+        
+        # Extract unique SKUs and locations for the dropdowns
+        sku_id_options = sorted(list(set([item['sku_id'] for item in forecast_data])))
+        location_options = sorted(list(set([item['location'] for item in forecast_data])))
+
+    except FileNotFoundError:
+        st.error("Error: `forecast_output.json` not found. Please create this file with your forecast results.")
+        st.stop()
+
+    # --- User Input Section ---
+    st.subheader("Select Inputs to View Forecast")
+    col1, col2 = st.columns(2)
+    with col1:
         selected_sku = st.selectbox("Select SKU ID:", sku_id_options, key="df_sku")
+    with col2:
         selected_location = st.selectbox("Select Location:", location_options, key="df_loc")
-    else:
-        st.info("Please upload a CSV file to simulate SKU/Location selection.")
-        selected_sku = "mango123" # Default for display if no file
-        selected_location = "Mumbai" # Default for display if no file
-
+    
+    # --- Display Forecast on Button Click ---
     if st.button("Forecast Next 7 Days", key="df_button"):
-        if uploaded_file or (selected_sku and selected_location): # Allow forecast if defaults are used or file uploaded
-            st.subheader("Forecast Results (Dummy)")
-            dummy_forecast_data = {
-                "sku_id": selected_sku,
-                "location": selected_location,
-                "forecast_next_7_days": generate_dummy_forecast()
-            }
-            st.json(dummy_forecast_data)
-            st.success("Dummy forecast generated!")
+        
+        # Find the matching forecast from our loaded data
+        result = next((item for item in forecast_data if item["sku_id"] == selected_sku and item["location"] == selected_location), None)
 
-            # Optional: Dummy chart
-            if "forecast_next_7_days" in dummy_forecast_data:
-                chart_data = pd.DataFrame({
-                    'Day': [f"Day {i+1}" for i in range(7)],
-                    'Forecasted Quantity': dummy_forecast_data["forecast_next_7_days"]
-                })
-                st.line_chart(chart_data.set_index('Day'))
+        st.subheader("Forecast Results")
+        if result:
+            st.json(result)
+
+            # Display a chart for better visualization
+            chart_data = pd.DataFrame({
+                'Day': [f"Day {i+1}" for i in range(7)],
+                'Forecasted Quantity': result["forecast_next_7_days"]
+            })
+            st.line_chart(chart_data.set_index('Day'))
+            st.success("Forecast retrieved from pre-computed results!")
         else:
-            st.warning("Please upload a file or ensure SKU/Location are selected.")
-
+            st.warning("No forecast found for the selected SKU and Location combination.")
+            
+    # --- Optional: Show an example of the input data format ---
+    with st.expander("Show an example of the training data format"):
+        st.markdown("The model was trained on 60 days of historical data in a CSV format like this:")
+        st.code("""
+order_date,sku_id,location,quantity
+2024-03-01,mango123,Mumbai,100
+2024-03-01,apple456,Delhi,152
+...
+        """, language="csv")
 
 # ==============================================================================
 # --- Option B: Spoilage Prediction ---
@@ -76,37 +86,40 @@ elif app_mode == "Spoilage Prediction":
     st.header("🌿 Spoilage Prediction")
     st.markdown("Predict the probability that a shipment will spoil based on transit time and temperature logs.")
 
-    st.subheader("Inputs for a New Shipment (Dummy)")
-    shipment_id = st.text_input("Shipment ID (e.g., SHP-NEW):", "SHP-DUMMY-001", key="sp_ship_id")
-    sku_id_sp = st.text_input("SKU ID (e.g., banana78):", "banana_fresh", key="sp_sku_id")
-    transit_hours = st.number_input("Transit Hours:", min_value=1.0, max_value=200.0, value=24.5, step=0.5, key="sp_hours")
-    avg_temp = st.number_input("Average Temperature (°C):", min_value=-10.0, max_value=40.0, value=28.2, step=0.1, key="sp_temp")
+    st.subheader("Inputs for a New Shipment")
+    shipment_id = st.text_input("Shipment ID (e.g., SHP-NEW):", "SHP-NEW-001", key="sp_ship_id")
+    sku_id_sp = st.selectbox("SKU ID:", ["banana78", "strawberry45", "cheese_block"], key="sp_sku_id")
+    transit_hours = st.slider("Transit Hours:", min_value=1.0, max_value=200.0, value=24.5, step=0.5, key="sp_hours")
+    avg_temp = st.slider("Average Temperature (°C):", min_value=-10.0, max_value=40.0, value=28.2, step=0.1, key="sp_temp")
     shock_events = st.number_input("Number of Shock Events:", min_value=0, max_value=10, value=1, step=1, key="sp_shocks")
 
     if st.button("Predict Spoilage Risk", key="sp_button"):
         st.subheader("Prediction Results (Dummy)")
-        dummy_accuracy = 0.85 # Example model accuracy
-        dummy_roc_auc = 0.92  # Example model ROC-AUC
-
+        
+        # Dummy performance metrics
         st.write(f"**Trained Model Performance (Dummy):**")
-        st.write(f"- Accuracy: {dummy_accuracy*100:.1f}%")
-        st.write(f"- ROC-AUC Score: {dummy_roc_auc:.2f}")
+        st.metric(label="Accuracy", value="85.1%")
+        st.metric(label="ROC-AUC Score", value="0.92")
 
-        dummy_spoilage_prob = random.uniform(0.05, 0.95) # Random probability
+        # Dummy prediction logic
+        spoilage_prob = (transit_hours / 200) * 0.4 + (avg_temp / 40) * 0.5 + (shock_events / 10) * 0.1
+        spoilage_prob = min(0.99, spoilage_prob * random.uniform(0.8, 1.2)) # Add randomness
+        
         st.write(f"**Prediction for {shipment_id}:**")
-        st.metric(label="Predicted Spoilage Probability", value=f"{dummy_spoilage_prob*100:.1f}%")
+        st.metric(label="Predicted Spoilage Probability", value=f"{spoilage_prob*100:.1f}%")
 
         # Optional summary
         summary_text = f"This shipment ({shipment_id} for {sku_id_sp}) has an estimated "
-        if dummy_spoilage_prob > 0.7:
-            summary_text += f"{dummy_spoilage_prob*100:.0f}% spoilage risk, likely due to high temperature ({avg_temp}°C) and/or long transit ({transit_hours} hrs)."
-        elif dummy_spoilage_prob > 0.4:
-            summary_text += f"{dummy_spoilage_prob*100:.0f}% spoilage risk. Conditions seem moderate."
+        if spoilage_prob > 0.7:
+            summary_text += f"{spoilage_prob*100:.0f}% spoilage risk, likely due to high temperature ({avg_temp}°C) and/or long transit ({transit_hours} hrs)."
+            st.error(f"**Summary:** {summary_text}")
+        elif spoilage_prob > 0.4:
+            summary_text += f"{spoilage_prob*100:.0f}% spoilage risk. Conditions seem moderate."
+            st.warning(f"**Summary:** {summary_text}")
         else:
-            summary_text += f"{dummy_spoilage_prob*100:.0f}% spoilage risk. Conditions seem favorable."
-        st.info(f"**Optional Summary (Dummy):**\n{summary_text}")
-        st.success("Dummy spoilage prediction generated!")
-
+            summary_text += f"{spoilage_prob*100:.0f}% spoilage risk. Conditions seem favorable."
+            st.success(f"**Summary:** {summary_text}")
+        
 # ==============================================================================
 # --- Option C: ETA Prediction ---
 # ==============================================================================
@@ -114,26 +127,30 @@ elif app_mode == "ETA Prediction":
     st.header("⏱️ ETA Prediction")
     st.markdown("Estimate expected delivery time for a shipment based on past trip data.")
 
-    st.subheader("Inputs for a New Trip (Dummy)")
-    route_id = st.text_input("Route ID (e.g., R1):", "R-DUMMY-77", key="eta_route")
-    distance_km = st.number_input("Distance (km):", min_value=10.0, max_value=5000.0, value=320.0, step=10.0, key="eta_dist")
-    vehicle_type_options = ["van", "truck_small", "truck_large", "bike"]
-    vehicle_type = st.selectbox("Vehicle Type:", vehicle_type_options, key="eta_vehicle")
-    weather_options = ["clear", "rain", "light_snow", "foggy"]
-    weather = st.selectbox("Weather:", weather_options, key="eta_weather")
-    load_type_options = ["light", "medium", "heavy", "empty"]
-    load_type = st.selectbox("Load Type:", load_type_options, key="eta_load")
+    st.subheader("Inputs for a New Trip")
+    route_id = st.text_input("Route ID (e.g., R1):", "R-NEW-77", key="eta_route")
+    distance_km = st.slider("Distance (km):", min_value=10.0, max_value=2000.0, value=320.0, step=10.0, key="eta_dist")
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        vehicle_type = st.selectbox("Vehicle Type:", ["van", "truck_small", "truck_large"], key="eta_vehicle")
+    with col2:
+        weather = st.selectbox("Weather:", ["clear", "rain", "light_snow", "foggy"], key="eta_weather")
+    with col3:
+        load_type = st.selectbox("Load Type:", ["light", "medium", "heavy"], key="eta_load")
 
     if st.button("Predict ETA", key="eta_button"):
         st.subheader("Prediction Results (Dummy)")
 
         # Dummy prediction logic
-        base_hours = distance_km / 50 # Simple base calculation
+        base_hours = distance_km / 55 # Avg speed 55 km/h
         if vehicle_type == "truck_large": base_hours *= 1.2
         if weather == "rain": base_hours *= 1.15
+        if weather == "light_snow": base_hours *= 1.3
         if load_type == "heavy": base_hours *= 1.1
-        predicted_hours = round(base_hours * random.uniform(0.9, 1.1), 1) # Add some randomness
-        confidence_margin = round(predicted_hours * 0.1, 1) # 10% margin for dummy
+        
+        predicted_hours = round(base_hours * random.uniform(0.95, 1.05), 1)
+        confidence_margin = round(predicted_hours * 0.12, 1) # 12% margin
 
         dummy_eta_data = {
             "route_id": route_id,
@@ -143,6 +160,6 @@ elif app_mode == "ETA Prediction":
         st.json(dummy_eta_data)
         st.success("Dummy ETA prediction generated!")
 
-# --- Footer (Optional) ---
+# --- Footer ---
 st.sidebar.markdown("---")
-st.sidebar.info("This is a prototype for the AI Developer Assignment. ML models are not yet integrated.")
+st.sidebar.info("This is a prototype for the AI Developer Assignment.")
