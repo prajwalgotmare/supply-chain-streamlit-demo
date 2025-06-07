@@ -1,0 +1,21 @@
+# Python temporary files
+__pycache__/
+*.pyc
+
+# IDE / Editor specific
+.vscode/
+.idea/
+
+# Large data files (optional, but good practice if they get big)
+# data/*.csv
+
+# Saved models (can be large)
+# models/*.pkl
+
+# Virtual environment
+venv/
+env/
+
+# Start Generation Here
+dem.ipynb
+# End Generation Here

@@ -22,7 +22,7 @@ def create_demand_forecasting_dataset():
     start_date = datetime.now() - timedelta(days=num_days)
     date_range = pd.to_datetime([start_date + timedelta(days=x) for x in range(num_days)])
 
-    trend_factor = 0.5
+    trend_factor = 0.8
     weekly_seasonality = {
         0: 1.0, 1: 0.9, 2: 1.05, 3: 1.1, 4: 1.4, 5: 1.6, 6: 1.1
     }

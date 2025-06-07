@@ -1,0 +1,119 @@
+[
+    {
+        "sku_id": "apple456",
+        "location": "Bangalore",
+        "forecast_next_7_days": [
+            153,
+            123,
+            113,
+            113,
+            113,
+            116,
+            142
+        ]
+    },
+    {
+        "sku_id": "apple456",
+        "location": "Delhi",
+        "forecast_next_7_days": [
+            176,
+            152,
+            136,
+            120,
+            154,
+            157,
+            170
+        ]
+    },
+    {
+        "sku_id": "apple456",
+        "location": "Mumbai",
+        "forecast_next_7_days": [
+            165,
+            134,
+            127,
+            119,
+            125,
+            138,
+            168
+        ]
+    },
+    {
+        "sku_id": "banana789",
+        "location": "Bangalore",
+        "forecast_next_7_days": [
+            97,
+            88,
+            88,
+            85,
+            93,
+            103,
+            105
+        ]
+    },
+    {
+        "sku_id": "banana789",
+        "location": "Delhi",
+        "forecast_next_7_days": [
+            135,
+            104,
+            104,
+            106,
+            104,
+            107,
+            129
+        ]
+    },
+    {
+        "sku_id": "banana789",
+        "location": "Mumbai",
+        "forecast_next_7_days": [
+            114,
+            94,
+            95,
+            90,
+            105,
+            102,
+            113
+        ]
+    },
+    {
+        "sku_id": "mango123",
+        "location": "Bangalore",
+        "forecast_next_7_days": [
+            103,
+            97,
+            99,
+            96,
+            99,
+            99,
+            109
+        ]
+    },
+    {
+        "sku_id": "mango123",
+        "location": "Delhi",
+        "forecast_next_7_days": [
+            90,
+            92,
+            79,
+            87,
+            91,
+            86,
+            93
+        ]
+    },
+    {
+        "sku_id": "mango123",
+        "location": "Mumbai",
+        "forecast_next_7_days": [
+            123,
+            100,
+            102,
+            99,
+            101,
+            108,
+            115
+        ]
+    }
+]
