@@ -88,72 +88,68 @@ elif app_mode == "Spoilage Prediction":
     st.header("🌿 Spoilage Prediction")
     st.markdown("Predict the probability that a shipment will spoil based on transit time and temperature logs.")
 
-    # --- LOAD THE TRAINED MODEL AND COLUMNS (uses caching for efficiency) ---
+    # --- LOAD THE TRAINED MODEL, COLUMNS, AND METRICS ---
     @st.cache_resource
     def load_model_assets():
-        """Loads the trained model and the column list."""
+        """Loads the model, columns, and performance metrics."""
         try:
-            # CORRECTED PATH: Assumes files are in the same directory as app.py
-            with open('src/training/spoilage_modelv2.pkl', 'rb') as f_model:
+            with open('src/training/spoilage_model.pkl', 'rb') as f_model:
                 model = pickle.load(f_model)
             
-            # CORRECTED PATH
-            with open('src/training/spoilage_columnsv2.json', 'r') as f_cols:
+            with open('src/training/spoilage_columns.json', 'r') as f_cols:
                 columns = json.load(f_cols)
+
+            # NEW: Load the metrics file
+            with open('spoilage_metrics.json', 'r') as f_metrics:
+                metrics = json.load(f_metrics)
                 
-            return model, columns
-        except FileNotFoundError:
-            st.error("Error: Model files ('spoilage_modelv2.pkl' or 'spoilage_columnsv2.json') not found. Please run the training script and ensure files are in the correct directory.")
-            return None, None
+            return model, columns, metrics
+        except FileNotFoundError as e:
+            st.error(f"Error: A required model file was not found. Please run the training script. Missing file: {e.filename}")
+            return None, None, None
         
-    model, model_columns = load_model_assets()
+    model, model_columns, metrics = load_model_assets()
     
-    if model is None or model_columns is None:
+    if model is None:
         st.stop()
         
-    st.subheader("Inputs for a New Shipment (Unseen Data)")
-    # This section correctly gets the SKU options from the loaded model columns
+    # --- Display Model Performance First ---
+    st.subheader("Model Performance")
+    st.markdown("These scores were calculated on a hold-out test set during model development.")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        # Display Accuracy, formatted as a percentage
+        st.metric(label="Accuracy", value=f"{metrics['accuracy']:.1%}")
+    with col2:
+        # Display ROC-AUC score
+        st.metric(label="ROC-AUC Score", value=f"{metrics['roc_auc']:.3f}")
+
+    # --- User Input Section (no changes here) ---
+    st.subheader("Inputs for a New Shipment")
     sku_options = [col.replace('sku_', '') for col in model_columns if col.startswith('sku_')]
     sku_id_sp = st.selectbox("SKU ID:", sorted(sku_options), key="sp_sku_id")
-    
-    transit_hours = st.slider("Transit Hours:", min_value=1.0, max_value=200.0, value=24.5, step=0.5, key="sp_hours")
-    avg_temp = st.slider("Average Temperature (°C):", min_value=-10.0, max_value=40.0, value=28.2, step=0.1, key="sp_temp")
-    shock_events = st.number_input("Number of Shock Events:", min_value=0, max_value=10, value=1, step=1, key="sp_shocks")
+    transit_hours = st.slider("Transit Hours:", 1.0, 200.0, 24.5, 0.5, key="sp_hours")
+    avg_temp = st.slider("Average Temperature (°C):", -10.0, 40.0, 28.2, 0.1, key="sp_temp")
+    shock_events = st.number_input("Number of Shock Events:", 0, 10, 1, 1, key="sp_shocks")
 
-    # --- PREDICTION LOGIC ---
+    # --- Prediction Logic and Result Display (no changes here) ---
     if st.button("Predict Spoilage Risk", key="sp_button"):
-        
-        # 1. Create a DataFrame from the single, unseen user input
         input_df = pd.DataFrame({
-            'transit_hours': [transit_hours],
-            'avg_temp': [avg_temp],
-            'shock_events': [shock_events],
-            'sku_id': [sku_id_sp]
+            'transit_hours': [transit_hours], 'avg_temp': [avg_temp],
+            'shock_events': [shock_events], 'sku_id': [sku_id_sp]
         })
-        
-        # 2. Apply the EXACT SAME feature engineering as in training
         input_df['temp_x_hours'] = input_df['avg_temp'] * input_df['transit_hours']
         input_df['temp_squared'] = input_df['avg_temp']**2
-        
-        # 3. One-Hot Encode the user's selected SKU
         input_encoded = pd.get_dummies(input_df, columns=['sku_id'], prefix='sku')
-        
-        # 4. **THE MOST IMPORTANT STEP**: Align the columns. This ensures the
-        #    input has the exact same columns (e.g., sku_apple, sku_banana) in the
-        #    same order as the model was trained on. It fills missing ones with 0.
         input_aligned = input_encoded.reindex(columns=model_columns, fill_value=0)
-        
-        # 5. Make the prediction on the fully preprocessed unseen data
         spoilage_prob = model.predict_proba(input_aligned)[0][1]
 
-        # --- DISPLAY RESULTS (Your result display code is excellent and needs no changes) ---
         st.subheader("Prediction Results")
-        
         st.metric(label="Predicted Spoilage Probability", value=f"{spoilage_prob*100:.1f}%")
-
-        # Your summary logic here is great
+        
         if spoilage_prob > 0.7:
-             st.error(f"**Summary:** High risk ({spoilage_prob*100:.0f}%) due to conditions.")
+             st.error(f"**Summary:** High risk ({spoilage_prob*100:.0f}%) detected.")
         elif spoilage_prob > 0.4:
              st.warning(f"**Summary:** Moderate risk ({spoilage_prob*100:.0f}%) detected.")
         else:
