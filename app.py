@@ -156,45 +156,89 @@ elif app_mode == "Spoilage Prediction":
              st.success(f"**Summary:** Low risk ({spoilage_prob*100:.0f}%) detected.")
 
 # ==============================================================================
-# --- Option C: ETA Prediction ---
+# --- Option C: ETA Prediction (FINAL, DEPLOYED VERSION) ---
 # ==============================================================================
 elif app_mode == "ETA Prediction":
     st.header("⏱️ ETA Prediction")
     st.markdown("Estimate expected delivery time for a shipment based on past trip data.")
 
+    # --- LOAD THE TRAINED MODEL AND ASSETS ---
+    # @st.cache_resource is a Streamlit decorator that loads this data only once,
+    # making the app much faster.
+    @st.cache_resource
+    def load_eta_model_assets():
+        """Loads the trained model, column list, and performance metrics."""
+        try:
+            with open('src/training/eta_model.pkl', 'rb') as f_model:
+                model = pickle.load(f_model)
+            
+            with open('src/training/eta_model_assets.json', 'r') as f_assets:
+                assets = json.load(f_assets)
+                
+            model_columns = assets["model_columns"]
+            confidence_mae = assets["performance_metrics"]["confidence_mae_hours"]
+            return model, model_columns, confidence_mae
+        except FileNotFoundError:
+            st.error(
+                "Error: Model files ('eta_model.pkl', 'eta_model_assets.json') not found. "
+                "Please run the training script first to generate them."
+            )
+            return None, None, None
+        
+    model, model_columns, confidence_mae = load_eta_model_assets()
+    
+    # If files were not found, stop the app from running further.
+    if model is None:
+        st.stop()
+        
+    # --- Display Model Performance ---
+    st.info(f"This model predicts ETAs with an average confidence of **±{confidence_mae} hours** (based on MAE).")
+
+    # --- User Input Section (UI remains the same) ---
     st.subheader("Inputs for a New Trip")
-    route_id = st.text_input("Route ID (e.g., R1):", "R-NEW-77", key="eta_route")
+    route_id = st.text_input("Route ID (e.g., R-NEW-77):", "R-NEW-77", key="eta_route")
     distance_km = st.slider("Distance (km):", min_value=10.0, max_value=2000.0, value=320.0, step=10.0, key="eta_dist")
     
     col1, col2, col3 = st.columns(3)
     with col1:
+        # These lists should match the categories used in your training data
         vehicle_type = st.selectbox("Vehicle Type:", ["van", "truck_small", "truck_large"], key="eta_vehicle")
     with col2:
         weather = st.selectbox("Weather:", ["clear", "rain", "light_snow", "foggy"], key="eta_weather")
     with col3:
         load_type = st.selectbox("Load Type:", ["light", "medium", "heavy"], key="eta_load")
 
+    # --- Prediction Logic (This is the core change) ---
     if st.button("Predict ETA", key="eta_button"):
-        st.subheader("Prediction Results (Dummy)")
-
-        # Dummy prediction logic
-        base_hours = distance_km / 55 # Avg speed 55 km/h
-        if vehicle_type == "truck_large": base_hours *= 1.2
-        if weather == "rain": base_hours *= 1.15
-        if weather == "light_snow": base_hours *= 1.3
-        if load_type == "heavy": base_hours *= 1.1
         
-        predicted_hours = round(base_hours * random.uniform(0.95, 1.05), 1)
-        confidence_margin = round(predicted_hours * 0.12, 1) # 12% margin
+        # 1. Create a DataFrame from user inputs
+        input_data = {
+            'distance_km': [distance_km],
+            'vehicle_type': [vehicle_type],
+            'weather': [weather],
+            'load_type': [load_type]
+        }
+        input_df = pd.DataFrame(input_data)
 
-        dummy_eta_data = {
+        # 2. Preprocess the input to match the model's training format
+        # a) One-hot encode the categorical features
+        input_processed = pd.get_dummies(input_df)
+        
+        # b) Reindex to ensure it has the exact same columns as the training data
+        #    This is a CRITICAL step. It adds any missing columns and fills them with 0.
+        input_aligned = input_processed.reindex(columns=model_columns, fill_value=0)
+
+        # 3. Make the prediction
+        prediction_array = model.predict(input_aligned)
+        predicted_hours = round(prediction_array[0], 1)
+
+        # 4. Format the final output as required
+        final_output = {
             "route_id": route_id,
             "predicted_eta_hours": predicted_hours,
-            "confidence": f"±{confidence_margin} hrs"
+            "confidence": f"±{confidence_mae} hrs"
         }
-        st.json(dummy_eta_data)
-        st.success("Dummy ETA prediction generated!")
-
-# --- Footer ---
-st.sidebar.markdown("---")
-st.sidebar.info("This is a prototype for the AI Developer Assignment.")
+        
+        st.subheader("Prediction Results")
+        st.json(final_output)
+        st.success("ETA prediction generated successfully from the trained model!")

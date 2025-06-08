@@ -1,0 +1,21 @@
+{
+    "model_columns": [
+        "distance_km",
+        "vehicle_type_truck_large",
+        "vehicle_type_truck_small",
+        "vehicle_type_van",
+        "weather_clear",
+        "weather_foggy",
+        "weather_light_snow",
+        "weather_rain",
+        "load_type_heavy",
+        "load_type_light",
+        "load_type_medium"
+    ],
+    "performance_metrics": {
+        "confidence_mae_hours": 0.63,
+        "rmse_hours": 0.84,
+        "r2_score": 0.992,
+        "mape_percent": 4.79
+    }
+}
