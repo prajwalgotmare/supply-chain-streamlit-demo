@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 import random
+import joblib
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -80,35 +81,88 @@ order_date,sku_id,location,quantity
         """, language="csv")
 
 # ==============================================================================
-# --- Option B: Spoilage Prediction ---
+# --- Option B: Spoilage Prediction (FINAL, DEPLOYED VERSION) ---
 # ==============================================================================
 elif app_mode == "Spoilage Prediction":
     st.header("🌿 Spoilage Prediction")
     st.markdown("Predict the probability that a shipment will spoil based on transit time and temperature logs.")
 
+
+
+    # --- LOAD THE TRAINED MODEL AND COLUMNS (uses caching for efficiency) ---
+    @st.cache_resource
+    def load_model_assets():
+        """Loads the trained model and the column list."""
+        try:
+            model = joblib.load('src/training/spoilage_model.joblib')
+            with open('src/training/model_columns.json', 'r') as f:
+                columns = json.load(f)
+            return model, columns
+        except FileNotFoundError:
+            st.error("Error: Model files not found. Please run the training script first.")
+            return None, None
+
+    model, model_columns = load_model_assets()
+    
+    # Stop the app if model assets failed to load
+    if not model or not model_columns:
+        st.stop()
+
+    # --- USER INPUT SECTION (Your existing code is great here) ---
     st.subheader("Inputs for a New Shipment")
     shipment_id = st.text_input("Shipment ID (e.g., SHP-NEW):", "SHP-NEW-001", key="sp_ship_id")
-    sku_id_sp = st.selectbox("SKU ID:", ["banana78", "strawberry45", "cheese_block"], key="sp_sku_id")
+    
+    # Get the list of unique SKUs from the model columns for the dropdown
+    # This makes the app robust - it automatically knows which SKUs the model was trained on.
+    sku_options = [col.replace('sku_', '') for col in model_columns if 'sku_' in col]
+    sku_id_sp = st.selectbox("SKU ID:", sorted(sku_options), key="sp_sku_id")
+    
     transit_hours = st.slider("Transit Hours:", min_value=1.0, max_value=200.0, value=24.5, step=0.5, key="sp_hours")
     avg_temp = st.slider("Average Temperature (°C):", min_value=-10.0, max_value=40.0, value=28.2, step=0.1, key="sp_temp")
     shock_events = st.number_input("Number of Shock Events:", min_value=0, max_value=10, value=1, step=1, key="sp_shocks")
 
+    # --- PREDICTION LOGIC ---
     if st.button("Predict Spoilage Risk", key="sp_button"):
-        st.subheader("Prediction Results (Dummy)")
         
-        # Dummy performance metrics
-        st.write(f"**Trained Model Performance (Dummy):**")
-        st.metric(label="Accuracy", value="85.1%")
-        st.metric(label="ROC-AUC Score", value="0.92")
+        # 1. Create a dictionary from the user's input
+        input_data = {
+            'transit_hours': [transit_hours],
+            'avg_temp': [avg_temp],
+            'shock_events': [shock_events],
+            'sku_id': [sku_id_sp]  # The user-selected SKU
+        }
+        
+        # 2. Convert to a DataFrame
+        input_df = pd.DataFrame(input_data)
+        
+        # 3. Apply the SAME feature engineering as in training
+        input_df['temp_x_hours'] = input_df['avg_temp'] * input_df['transit_hours']
+        input_df['temp_squared'] = input_df['avg_temp']**2
+        
+        # 4. One-Hot Encode the SKU
+        input_encoded = pd.get_dummies(input_df, columns=['sku_id'], prefix='sku')
+        
+        # 5. Align columns with the trained model's columns
+        # This is the most critical step for handling "unseen" data.
+        # It creates a DataFrame with the exact same columns the model expects,
+        # filling any missing columns (i.e., other SKUs) with 0.
+        input_aligned = input_encoded.reindex(columns=model_columns, fill_value=0)
+        
+        # 6. Make the prediction
+        spoilage_prob = model.predict_proba(input_aligned)[0][1] # Probability of class '1' (spoilage)
 
-        # Dummy prediction logic
-        spoilage_prob = (transit_hours / 200) * 0.4 + (avg_temp / 40) * 0.5 + (shock_events / 10) * 0.1
-        spoilage_prob = min(0.99, spoilage_prob * random.uniform(0.8, 1.2)) # Add randomness
+        # --- DISPLAY RESULTS ---
+        st.subheader("Prediction Results")
         
+        # Display the performance metrics you got from your evaluation run
+        st.write(f"**Trained Model Performance (on test set):**")
+        st.metric(label="Accuracy", value="76.0%") # Use your actual score
+        st.metric(label="ROC-AUC Score", value="0.868") # Use your actual score
+
         st.write(f"**Prediction for {shipment_id}:**")
         st.metric(label="Predicted Spoilage Probability", value=f"{spoilage_prob*100:.1f}%")
 
-        # Optional summary
+        # Your excellent summary text logic remains the same here!
         summary_text = f"This shipment ({shipment_id} for {sku_id_sp}) has an estimated "
         if spoilage_prob > 0.7:
             summary_text += f"{spoilage_prob*100:.0f}% spoilage risk, likely due to high temperature ({avg_temp}°C) and/or long transit ({transit_hours} hrs)."
@@ -119,7 +173,7 @@ elif app_mode == "Spoilage Prediction":
         else:
             summary_text += f"{spoilage_prob*100:.0f}% spoilage risk. Conditions seem favorable."
             st.success(f"**Summary:** {summary_text}")
-        
+
 # ==============================================================================
 # --- Option C: ETA Prediction ---
 # ==============================================================================

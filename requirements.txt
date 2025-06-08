@@ -1,5 +1,5 @@
 streamlit
 pandas
-# numpy (implicitly included by pandas, but good to list if you use it directly)
-# scikit-learn (will be needed later for actual models)
-# joblib (will be needed later for saving/loading models)
+numpy  # implicitly included by pandas, but good to list if you use it directly
+scikit-learn  # will be needed later for actual models
+joblib  # will be needed later for saving/loading models
