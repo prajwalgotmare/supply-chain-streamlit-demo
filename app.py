@@ -94,11 +94,11 @@ elif app_mode == "Spoilage Prediction":
         """Loads the trained model and the column list."""
         try:
             # Load the model saved with pickle
-            with open('spoilage_model.pkl', 'rb') as f_model:
+            with open('src/training/spoilage_model.pkl', 'rb') as f_model:
                 model = pickle.load(f_model)
             
             # Load the columns list
-            with open('spoilage_columns.json', 'r') as f_cols:
+            with open('src/training/spoilage_columns.json', 'r') as f_cols:
                 columns = json.load(f_cols)
                 
             return model, columns
