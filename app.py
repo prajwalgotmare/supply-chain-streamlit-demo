@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import json
-import random
-# import joblib
 import pickle
 
 # --- Page Configuration ---
@@ -23,7 +21,7 @@ app_mode = st.sidebar.radio(
 )
 
 # ==============================================================================
-# --- Option A: Demand Forecasting (REVISED AND IMPROVED) ---
+# --- Option A: Demand Forecasting ---
 # ==============================================================================
 if app_mode == "Demand Forecasting":
     st.header("📈 Demand Forecasting")
@@ -32,12 +30,12 @@ if app_mode == "Demand Forecasting":
 
     # --- Load Pre-computed Forecast Data ---
     try:
-        with open('forecast_output.json', 'r') as f:
+        with open('src/training/forecast_output.json', 'r') as f:
             forecast_data = json.load(f)
         
         # Extract unique SKUs and locations for the dropdowns
-        sku_id_options = sorted(list(set([item['sku_id'] for item in forecast_data])))
-        location_options = sorted(list(set([item['location'] for item in forecast_data])))
+        sku_id_options = sorted(list(set(item['sku_id'] for item in forecast_data)))
+        location_options = sorted(list(set(item['location'] for item in forecast_data)))
 
     except FileNotFoundError:
         st.error("Error: `forecast_output.json` not found. Please create this file with your forecast results.")
@@ -82,7 +80,7 @@ order_date,sku_id,location,quantity
         """, language="csv")
 
 # ==============================================================================
-# --- Option B: Spoilage Prediction (FINAL, DEPLOYED VERSION) ---
+# --- Option B: Spoilage Prediction ---
 # ==============================================================================
 elif app_mode == "Spoilage Prediction":
     st.header("🌿 Spoilage Prediction")
@@ -125,7 +123,7 @@ elif app_mode == "Spoilage Prediction":
         # Display ROC-AUC score
         st.metric(label="ROC-AUC Score", value=f"{metrics['roc_auc']:.3f}")
 
-    # --- User Input Section (no changes here) ---
+    # --- User Input Section ---
     st.subheader("Inputs for a New Shipment")
     sku_options = [col.replace('sku_', '') for col in model_columns if col.startswith('sku_')]
     sku_id_sp = st.selectbox("SKU ID:", sorted(sku_options), key="sp_sku_id")
@@ -133,11 +131,13 @@ elif app_mode == "Spoilage Prediction":
     avg_temp = st.slider("Average Temperature (°C):", -10.0, 40.0, 28.2, 0.1, key="sp_temp")
     shock_events = st.number_input("Number of Shock Events:", 0, 10, 1, 1, key="sp_shocks")
 
-    # --- Prediction Logic and Result Display (no changes here) ---
+    # --- Prediction Logic and Result Display ---
     if st.button("Predict Spoilage Risk", key="sp_button"):
         input_df = pd.DataFrame({
-            'transit_hours': [transit_hours], 'avg_temp': [avg_temp],
-            'shock_events': [shock_events], 'sku_id': [sku_id_sp]
+            'transit_hours': [transit_hours], 
+            'avg_temp': [avg_temp],
+            'shock_events': [shock_events], 
+            'sku_id': [sku_id_sp]
         })
         input_df['temp_x_hours'] = input_df['avg_temp'] * input_df['transit_hours']
         input_df['temp_squared'] = input_df['avg_temp']**2
@@ -148,6 +148,7 @@ elif app_mode == "Spoilage Prediction":
         st.subheader("Prediction Results")
         st.metric(label="Predicted Spoilage Probability", value=f"{spoilage_prob*100:.1f}%")
         
+        # --- Risk Assessment ---
         if spoilage_prob > 0.7:
              st.error(f"**Summary:** High risk ({spoilage_prob*100:.0f}%) detected.")
         elif spoilage_prob > 0.4:
@@ -156,15 +157,13 @@ elif app_mode == "Spoilage Prediction":
              st.success(f"**Summary:** Low risk ({spoilage_prob*100:.0f}%) detected.")
 
 # ==============================================================================
-# --- Option C: ETA Prediction (FINAL, DEPLOYED VERSION) ---
+# --- Option C: ETA Prediction ---
 # ==============================================================================
 elif app_mode == "ETA Prediction":
     st.header("⏱️ ETA Prediction")
     st.markdown("Estimate expected delivery time for a shipment based on past trip data.")
 
     # --- LOAD THE TRAINED MODEL AND ASSETS ---
-    # @st.cache_resource is a Streamlit decorator that loads this data only once,
-    # making the app much faster.
     @st.cache_resource
     def load_eta_model_assets():
         """Loads the trained model, column list, and performance metrics."""
@@ -194,21 +193,23 @@ elif app_mode == "ETA Prediction":
     # --- Display Model Performance ---
     st.info(f"This model predicts ETAs with an average confidence of **±{confidence_mae} hours** (based on MAE).")
 
-    # --- User Input Section (UI remains the same) ---
+    # --- User Input Section ---
     st.subheader("Inputs for a New Trip")
     route_id = st.text_input("Route ID (e.g., R-NEW-77):", "R-NEW-77", key="eta_route")
     distance_km = st.slider("Distance (km):", min_value=10.0, max_value=2000.0, value=320.0, step=10.0, key="eta_dist")
     
     col1, col2, col3 = st.columns(3)
     with col1:
-        # These lists should match the categories used in your training data
+        # Vehicle Type Selection
         vehicle_type = st.selectbox("Vehicle Type:", ["van", "truck_small", "truck_large"], key="eta_vehicle")
     with col2:
+        # Weather Condition Selection
         weather = st.selectbox("Weather:", ["clear", "rain", "light_snow", "foggy"], key="eta_weather")
     with col3:
+        # Load Type Selection
         load_type = st.selectbox("Load Type:", ["light", "medium", "heavy"], key="eta_load")
 
-    # --- Prediction Logic (This is the core change) ---
+    # --- Prediction Logic ---
     if st.button("Predict ETA", key="eta_button"):
         
         # 1. Create a DataFrame from user inputs
@@ -225,7 +226,6 @@ elif app_mode == "ETA Prediction":
         input_processed = pd.get_dummies(input_df)
         
         # b) Reindex to ensure it has the exact same columns as the training data
-        #    This is a CRITICAL step. It adds any missing columns and fills them with 0.
         input_aligned = input_processed.reindex(columns=model_columns, fill_value=0)
 
         # 3. Make the prediction

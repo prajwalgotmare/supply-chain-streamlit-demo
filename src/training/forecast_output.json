@@ -3,26 +3,26 @@
         "sku_id": "apple456",
         "location": "Bangalore",
         "forecast_next_7_days": [
-            153,
-            123,
-            113,
-            113,
-            113,
+            152,
+            122,
             116,
-            142
+            112,
+            116,
+            122,
+            149
         ]
     },
     {
         "sku_id": "apple456",
         "location": "Delhi",
         "forecast_next_7_days": [
-            176,
+            175,
             152,
-            136,
-            120,
-            154,
-            157,
-            170
+            132,
+            122,
+            148,
+            156,
+            167
         ]
     },
     {
@@ -30,24 +30,24 @@
         "location": "Mumbai",
         "forecast_next_7_days": [
             165,
-            134,
-            127,
-            119,
-            125,
+            131,
+            126,
+            120,
+            123,
             138,
-            168
+            164
         ]
     },
     {
         "sku_id": "banana789",
         "location": "Bangalore",
         "forecast_next_7_days": [
-            97,
+            96,
             88,
+            89,
             88,
-            85,
-            93,
-            103,
+            91,
+            98,
             105
         ]
     },
@@ -55,65 +55,65 @@
         "sku_id": "banana789",
         "location": "Delhi",
         "forecast_next_7_days": [
-            135,
-            104,
-            104,
+            136,
             106,
-            104,
+            109,
+            108,
             107,
-            129
+            113,
+            133
         ]
     },
     {
         "sku_id": "banana789",
         "location": "Mumbai",
         "forecast_next_7_days": [
-            114,
-            94,
-            95,
-            90,
-            105,
-            102,
-            113
+            115,
+            99,
+            97,
+            98,
+            106,
+            104,
+            115
         ]
     },
     {
         "sku_id": "mango123",
         "location": "Bangalore",
         "forecast_next_7_days": [
-            103,
-            97,
+            101,
+            95,
+            98,
+            94,
             99,
-            96,
-            99,
-            99,
-            109
+            98,
+            104
         ]
     },
     {
         "sku_id": "mango123",
         "location": "Delhi",
         "forecast_next_7_days": [
-            90,
-            92,
-            79,
             87,
-            91,
-            86,
-            93
+            90,
+            77,
+            85,
+            85,
+            88,
+            96
         ]
     },
     {
         "sku_id": "mango123",
         "location": "Mumbai",
         "forecast_next_7_days": [
-            123,
-            100,
+            126,
             102,
-            99,
-            101,
-            108,
-            115
+            105,
+            102,
+            100,
+            110,
+            117
         ]
     }
 ]
