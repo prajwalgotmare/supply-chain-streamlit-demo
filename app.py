@@ -87,15 +87,13 @@ elif app_mode == "Spoilage Prediction":
     st.header("🌿 Spoilage Prediction")
     st.markdown("Predict the probability that a shipment will spoil based on transit time and temperature logs.")
 
-
-
     # --- LOAD THE TRAINED MODEL AND COLUMNS (uses caching for efficiency) ---
     @st.cache_resource
     def load_model_assets():
         """Loads the trained model and the column list."""
         try:
-            model = joblib.load('src/training/spoilage_model.joblib')
-            with open('src/training/model_columns.json', 'r') as f:
+            model = joblib.load('src/training/spoilage_model_v2.joblib')
+            with open('src/training/model_columns_v2.json', 'r') as f:
                 columns = json.load(f)
             return model, columns
         except FileNotFoundError:
