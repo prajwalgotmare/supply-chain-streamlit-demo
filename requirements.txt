@@ -1,5 +1,5 @@
-streamlit
-pandas
-numpy  # implicitly included by pandas, but good to list if you use it directly
-scikit-learn  # will be needed later for actual models
-joblib  # will be needed later for saving/loading models
+streamlit==1.45.1
+pandas==2.0.1
+numpy
+scikit-learn==1.2.1 
+joblib
