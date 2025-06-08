@@ -1,8 +1,5 @@
-# Tell Streamlit Cloud to use this specific Python version
-python_version = "3.10.9"
-
-streamlit
-pandas
-numpy
-scikit-learn
-joblib
+streamlit==1.45.1
+pandas==2.0.1
+joblib==1.2.0
+scikit-learn==1.7.0
+numpy==1.24.1
