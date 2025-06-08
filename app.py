@@ -100,7 +100,7 @@ elif app_mode == "Spoilage Prediction":
                 columns = json.load(f_cols)
 
             # NEW: Load the metrics file
-            with open('spoilage_metrics.json', 'r') as f_metrics:
+            with open('src/training/spoilage_metrics.json', 'r') as f_metrics:
                 metrics = json.load(f_metrics)
                 
             return model, columns, metrics
