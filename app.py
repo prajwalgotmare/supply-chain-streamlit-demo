@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 import json
 import random
-import joblib
+# import joblib
+import pickle
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -92,21 +93,19 @@ elif app_mode == "Spoilage Prediction":
     def load_model_assets():
         """Loads the trained model and the column list."""
         try:
-            model = joblib.load('src/training/spoilage_model_v2.joblib')
-            with open('src/training/model_columns_v2.json', 'r') as f:
-                columns = json.load(f)
+            # Load the model saved with pickle
+            with open('src/training/spoilage_model.pkl', 'rb') as f_model:
+                model = pickle.load(f_model)
+            
+            # Load the columns list
+            with open('src/training/spoilage_columns.json', 'r') as f_cols:
+                columns = json.load(f_cols)
+                
             return model, columns
         except FileNotFoundError:
-            st.error("Error: Model files not found. Please run the training script first.")
+            st.error("Error: Model asset files ('spoilage_model.pkl' or 'spoilage_columns.json') not found. Please ensure they are in the root of your repository.")
             return None, None
-
-    model, model_columns = load_model_assets()
-    
-    # Stop the app if model assets failed to load
-    if not model or not model_columns:
-        st.stop()
-
-    # --- USER INPUT SECTION (Your existing code is great here) ---
+        
     st.subheader("Inputs for a New Shipment")
     shipment_id = st.text_input("Shipment ID (e.g., SHP-NEW):", "SHP-NEW-001", key="sp_ship_id")
     
