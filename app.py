@@ -94,23 +94,32 @@ elif app_mode == "Spoilage Prediction":
         """Loads the trained model and the column list."""
         try:
             # Load the model saved with pickle
-            with open('src/training/spoilage_model.pkl', 'rb') as f_model:
+            with open('spoilage_model.pkl', 'rb') as f_model:
                 model = pickle.load(f_model)
             
             # Load the columns list
-            with open('src/training/spoilage_columns.json', 'r') as f_cols:
+            with open('spoilage_columns.json', 'r') as f_cols:
                 columns = json.load(f_cols)
                 
             return model, columns
         except FileNotFoundError:
-            st.error("Error: Model asset files ('spoilage_model.pkl' or 'spoilage_columns.json') not found. Please ensure they are in the root of your repository.")
+            st.error("Error: Model asset files ('spoilage_model.pkl' or 'spoilage_columns.json') not found. Please ensure they are in the root of your repository and have been pushed to GitHub.")
             return None, None
+        
+    ### <<< MOVED THIS SECTION UP >>> ###
+    # First, load the assets to define the variables
+    model, model_columns = load_model_assets()
+    
+    # If loading failed, stop the app gracefully
+    if model is None or model_columns is None:
+        st.stop()
+    ### <<< END OF MOVED SECTION >>> ###
         
     st.subheader("Inputs for a New Shipment")
     shipment_id = st.text_input("Shipment ID (e.g., SHP-NEW):", "SHP-NEW-001", key="sp_ship_id")
     
     # Get the list of unique SKUs from the model columns for the dropdown
-    # This makes the app robust - it automatically knows which SKUs the model was trained on.
+    # This line will now work because 'model_columns' was defined above
     sku_options = [col.replace('sku_', '') for col in model_columns if 'sku_' in col]
     sku_id_sp = st.selectbox("SKU ID:", sorted(sku_options), key="sp_sku_id")
     
@@ -140,9 +149,6 @@ elif app_mode == "Spoilage Prediction":
         input_encoded = pd.get_dummies(input_df, columns=['sku_id'], prefix='sku')
         
         # 5. Align columns with the trained model's columns
-        # This is the most critical step for handling "unseen" data.
-        # It creates a DataFrame with the exact same columns the model expects,
-        # filling any missing columns (i.e., other SKUs) with 0.
         input_aligned = input_encoded.reindex(columns=model_columns, fill_value=0)
         
         # 6. Make the prediction
