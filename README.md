@@ -31,7 +31,7 @@ Each component is designed for scalability and production readiness with proper 
 
 | Model | Algorithm | Key Metric | Performance |
 |-------|-----------|------------|-------------|
-| Demand Forecasting | XGBoost Regressor | MAE | 8.75 units |
+| Demand Forecasting | XGBoost Regressor | MAE | 8.75 |
 | Spoilage Prediction | LightGBM Classifier | ROC-AUC | 0.8738 (87.38%) |
 | ETA Prediction | Random Forest Regressor | R² Score | 99.2% |
 
