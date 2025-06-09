@@ -1,21 +1,14 @@
-# Python temporary files
+# Ignore Python temporary files generated during execution
 __pycache__/
 *.pyc
 
-# IDE / Editor specific
+# Ignore IDE and Editor specific configuration files
 .vscode/
 .idea/
 
-# Large data files (optional, but good practice if they get big)
-# data/*.csv
-
-# Saved models (can be large)
-# models/*.pkl
-
-# Virtual environment
+# Ignore virtual environment directories
 venv/
 env/
 
-# Start Generation Here
-dem.ipynb
-# End Generation Here
+# Ignore Jupyter Notebook files for exploratory data analysis
+EDA.ipynb
