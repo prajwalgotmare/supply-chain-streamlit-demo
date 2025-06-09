@@ -35,27 +35,6 @@ Each component is designed for scalability and production readiness with proper 
 | Spoilage Prediction | LightGBM Classifier | ROC-AUC | 0.8738 (87.38%) |
 | ETA Prediction | Random Forest Regressor | R² Score | 99.2% |
 
-## 🗂️ Project Structure
-
-```
-├── src/
-│   └── training/
-│       ├── train_1.ipynb          # Demand Forecasting
-│       ├── train_2.ipynb          # Spoilage Prediction
-│       ├── train_3.ipynb          # ETA Prediction
-│       └── forecast_output.json   # Generated forecasts
-├── models/
-│   ├── spoilage_model.pkl
-│   ├── eta_model.pkl
-│   └── model_assets/
-├── data/
-│   ├── synthetic_demand_data.csv
-│   ├── spoilage_data.csv
-│   └── eta_trip_data.csv
-├── app.py                         # Streamlit application
-└── README.md
-```
-
 ## 🚦 Getting Started
 
 ### Prerequisites
